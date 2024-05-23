@@ -1,17 +1,25 @@
-from systems import MiniManche, ApLAT, ApLONG, FMGS, FCU
+import threading
+from systems import FCC, MiniYoke, ApLAT, ApLONG, FMGS, FCU
 from bus import AviBus
 
-miniYoke = MiniManche()
+fcc = FCC()
+miniYoke = MiniYoke(fcc)
 apLat = ApLAT()
 apLong = ApLONG()
 fmgs = FMGS()
 fcu = FCU()
 
-aviBus = AviBus()
+aviBus = AviBus(appName="MiniYokeModule", prod=False)
 
 def init():
-    # Bind msg here
-    aviBus.bindMsg(fcu.parser, '^AP_STATE=(\S+)')
+    while not miniYoke.begin() :
+        pass
+
+    yokeThread = threading.Thread(target=miniYoke.listener)
+    yokeThread.start()
+
+    # Bind avi bus msg here
+    aviBus.bindMsg(fcu.parser, '^FCUAP1 push')
     aviBus.bindMsg(apLong.parser, '^AP_LONGI nx=(\S+) nz=(\S+)')
     aviBus.bindMsg(apLat.parser, '^AP_LAT p=(\S+)')
 
@@ -20,36 +28,43 @@ if __name__ == '__main__':
     while True:
         #print('miniYoke state =', miniYoke.state)
 
-        match miniYoke.state :  # Manage states transitions
+        match fcc.state :  # Manage states transitions
             case 'MANUAL':
                 if fcu.ApState == 'ON':
-                    print('miniYoke state switched to AP_ENGAGED')
+                    print('fcc state switch from MANUAL to AP_ENGAGED')
                     aviBus.sendMsg('FCUAP1 on') # Send acknowledge message to the fcu
 
-                    miniYoke.state = 'AP_ENGAGED'
+                    fcc.setState('AP_ENGAGED')
 
             case 'AP_ENGAGED':
                 if fcu.ApState == 'OFF':
-                    print('miniYoke state switched to MANUAL')
+                    print('fcc state switch from AP_ENGAGED to MANUAL')
                     aviBus.sendMsg('FCUAP1 off') # Send acknowledge message to the fcu
 
-                    miniYoke.state = 'MANUAL'
+                    fcc.setState('MANUAL')
+                
+                elif miniYoke.moved : 
+                    print('miniYoke state switch from AP_ENGAGED to MANUAL')
+                    aviBus.sendMsg('FCUAP1 off') # Send AP off message to the fcu
+
+                    fcc.setState('MANUAL')
+                    miniYoke.setMoved(False) # NTS : verifier si quand l'ap vient d'être bougé ça nique pas tout
 
             case _:
                 print("Error : unknown miniYoke state")
             
-        match miniYoke.state :  # Manage states actions
+        match fcc.state :  # Manage states actions
             case 'MANUAL':
-                if miniYoke.ready:
-                    aviBus.sendMsg('APNxControl nx={}'.format(miniYoke.nx))
-                    aviBus.sendMsg('APNzControl nz={}'.format(miniYoke.nz))
-                    aviBus.sendMsg('APLatControl p={}'.format(miniYoke.p))
+                if fcc.ready:
+                    aviBus.sendMsg('APNxControl nx={}'.format(fcc.nx))
+                    aviBus.sendMsg('APNzControl nz={}'.format(fcc.nz))
+                    aviBus.sendMsg('APLatControl p={}'.format(fcc.p))
 
-                    print('Sent APNxControl nx={}'.format(miniYoke.nx))
-                    print('Sent APNzControl nz={}'.format(miniYoke.nz))
-                    print('Sent APLatControl p={}'.format(miniYoke.p))
+                    print('Sent APNxControl nx={}'.format(fcc.nx))
+                    print('Sent APNzControl nz={}'.format(fcc.nz))
+                    print('Sent APLatControl p={}'.format(fcc.p))
 
-                    miniYoke.setReady(False)
+                    fcc.setReady(False)
 
             case 'AP_ENGAGED':
                 if apLat.ready and apLong.ready :

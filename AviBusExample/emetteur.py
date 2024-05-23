@@ -16,16 +16,18 @@ if __name__ == "__main__":
     while True:
         #IvySendMsg('PythonExample=Hello, world!')
         
-        IvySendMsg('AP_STATE=ON')
-        print("Sent AP is ON")
+        IvySendMsg('FCUAP1 push')
+        print("Sent FCU AP push")
         time.sleep(5)
 
         IvySendMsg('AP_LONGI nx=1 nz=2')
+        print("Sent AP LONGI data nx=1 nz=2")
         time.sleep(5)
 
         IvySendMsg('AP_LAT p=3')
+        print("Sent AP LAT data p=3")
         time.sleep(5)
 
-        IvySendMsg('AP_STATE=OFF')
-        print("Sent AP is OFF")
+        IvySendMsg('FCUAP1 push')
+        print("Sent FCU AP push")
         time.sleep(5)
