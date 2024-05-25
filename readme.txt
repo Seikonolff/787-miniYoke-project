@@ -25,7 +25,7 @@ make sure to install the following dependencies :
 
 The module is set to work along the 3 others to complete a flight in a simulated environnement hosted on a web-page.
 
-On MacOs/linux :
+On MacOs/linux (not suported atm) :
 - open terminal :
     - chmod +x aircraft-sim
     - ./aircraft-sim --bus "bus's IP adress" (prod : "224.255.255.255:2010" test : "127.0.0.1:8000")

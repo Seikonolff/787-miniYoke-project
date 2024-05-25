@@ -10,7 +10,8 @@ class AviBus :
     def __init__(self, appName, prod):
         self.prod = prod
         self.appName = appName
-        self.adress = "224.255.255.255:2010" if self.prod else "127.0.0.1:8000"
+        #self.adress = "224.255.255.255:2010" if self.prod else "127.0.0.1:8000"
+        self.adress = "127.255.255.255:2010" if self.prod else "127.0.0.1:8000"
 
         IvyInit(self.appName, "zbi", 0, on_cx_proc, on_die_proc)
         IvyStart(self.adress)
@@ -20,3 +21,6 @@ class AviBus :
     
     def bindMsg(self, callback, regex):
         IvyBindMsg(callback, regex)
+    
+    def close(self):
+        IvyStop()
