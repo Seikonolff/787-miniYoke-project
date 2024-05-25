@@ -20,6 +20,7 @@ Simple yoke's avionic simulation project made out of 4 python scripts :
 make sure to install the following dependencies : 
 - pip install ivy - python
 - pip install enum34
+- pip install pygame
 
 ## Usage
 
