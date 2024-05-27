@@ -6,12 +6,12 @@ aviBus = AviBus(appName="MiniYokeModule", prod=True)
 
 apLat = ApLAT()
 apLong = ApLONG()
-fmgs = FMGS()
+fmgs = FMGS(prod=True)
 fcu = FCU()
-flightModel = FlightModel(prod=True)
+flightModel = FlightModel()
 
 fcc = FCC(fcu, aviBus)
-miniYoke = MiniYoke(fcc, fmgs, flightModel, filterOn=True, alpha=0.1)
+miniYoke = MiniYoke(fcc, fmgs, flightModel, filterOn=False, alpha=0.1)
 
 running = True
 
@@ -59,9 +59,9 @@ def main():
     match fcc.state :  # Manage states actions
         case 'MANUAL':
             if fcc.ready:
-                aviBus.sendMsg('APNxControl nx={}'.format(fcc.nx))
-                aviBus.sendMsg('APNzControl nz={}'.format(fcc.nz))
-                aviBus.sendMsg('APLatControl rollRate={}'.format(fcc.p))
+                aviBus.sendMsg('APNxControl nx={}'.format(float(fcc.nx)))
+                aviBus.sendMsg('APNzControl nz={}'.format(float(fcc.nz)))
+                aviBus.sendMsg('APLatControl rollRate={}'.format(float(fcc.p)))
                 
 
                 #print('Sent APNxControl nx={}'.format(fcc.nx))

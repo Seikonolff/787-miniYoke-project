@@ -67,6 +67,12 @@ class MiniYoke :
         self.pitchAxis = 1
         self.rollAxis = 0
 
+        self.nzMin = -2
+        self.nzMax = 4
+
+        self.pMin = -0.35
+        self.pMax = 0.35
+
         self.flapsUpButton = 11
         self.flapsDownButton = 10
         self.apDisconnectButton = 3
@@ -140,7 +146,10 @@ class MiniYoke :
 
             self.getFlightCommands(self.pitchAxisValue, self.rollAxisValue)
             self.fcc.setFlightCommands(self.nx, self.nz, self.p)
-            
+            #print("pitch Axis:")
+            #print(self.pitchAxisValue)
+            #print("roll Axis")
+            #print(self.rollAxisValue)
             time.sleep(0.1)
 
     def getFlightCommands(self, pitchAxisValue, rollAxisValue):
@@ -150,7 +159,7 @@ class MiniYoke :
         
     
     def NxLaw(self):
-        return 1
+        return 0
 
     def NzLaw(self, pitchAxisValue):
         if self.filterOn:
@@ -159,9 +168,11 @@ class MiniYoke :
         else:
             nz = self.nzMin + (self.nzMax - self.nzMin) * (pitchAxisValue - self.pitchAxisMin) / (self.pitchAxisMax - self.pitchAxisMin)
 
-        if self.flightModel.phi > self.fmgs.phiMax:
-            nz = 0
 
+        if self.flightModel.fpa < self.fmgs.fpaMin or self.flightModel.fpa > self.fmgs.fpaMax:
+            nz = 1
+
+        #return -2
         return max(self.fmgs.nzMin, min(self.fmgs.nzMax, nz))
 
     def PLaw(self, rollAxisValue):
@@ -171,8 +182,11 @@ class MiniYoke :
         else:
             p = self.pMin + (self.pMax - self.pMin) * (rollAxisValue - self.rollAxisMin) / (self.rollAxisMax - self.rollAxisMin)
 
-        if self.flightModel.fpa > self.fmgs.fpaMax:
-            p = -p
+        
+        if self.flightModel.phi < self.fmgs.phiMin and self.rollAxisValue < 0:
+            p = 0
+        if self.flightModel.phi > self.fmgs.phiMax and self.rollAxisValue > 0:
+            p = 0
     
         return max(self.fmgs.pMin, min(self.fmgs.pMax, p))
     
@@ -239,8 +253,10 @@ class FMGS :
             self.pMax = 0.7
             self.pMin = -0.7
             self.phiMax = 1.152 # 1.152 rad = 66°
-            self.fpaMax = - 0.5 # - 0.262 rad = - 15°
-            self.fpaMin = 0.175 # 0.175 rad = 10°
+            self.phiMin = -self.phiMax
+            self.fpaMax = 0.175 # 0.175 rad = 10°
+            self.fpaMin = - 0.5 # - 0.262 rad = - 15°
+            
             
     def parser(self, *msg):
         self.nxMax = msg[1]
@@ -291,19 +307,19 @@ class FlightModel :
         self.regex = '^StateVector x=(\S+) y=(\S+) z=(\S+) Vp=(\S+) fpa=(\S+) psi=(\S+) phi=(\S+)'
 
     def parser(self, *msg):
-        self.x = msg[1]
-        self.y = msg[2]
-        self.z = msg[3]
-        self.Vp = msg[4]
-        self.fpa = msg[5]
-        self.psi = msg[6]
-        self.phi = msg[7]
+        self.x = float(msg[1])
+        self.y = float(msg[2])
+        self.z = float(msg[3])
+        self.Vp = float(msg[4])
+        self.fpa = float(msg[5])
+        self.psi = float(msg[6])
+        self.phi = float(msg[7])
 
-        print('Received message from FM :')
-        print('x =', self.x)
-        print('y =', self.y)
-        print('z =', self.z)
-        print('Vp =', self.Vp)
+        #print('Received message from FM :')
+        #print('x =', self.x)
+        #print('y =', self.y)
+        #print('z =', self.z)
+        #print('Vp =', self.Vp)
         print('fpa =', self.fpa)
-        print('psi =', self.psi)
+        #print('psi =', self.psi)
         print('phi =', self.phi)
