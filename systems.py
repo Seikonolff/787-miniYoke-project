@@ -14,11 +14,11 @@ class FCC :
         self.fcu = fcu
         self.aviBus = aviBus
 
-    def setFlightInputs(self, nx, nz, p):
+    def setFlightCommands(self, nx, nz, p):
         self.nx = nx
         self.nz = nz
         self.p = p
-        self.setReady(True)
+        self.ready = True
 
     def setState(self, state):
         self.state = state
@@ -46,23 +46,26 @@ class FCC :
             self.aviBus.sendMsg('GEAR DOWN')
 
 class MiniYoke :
-    def __init__(self, fcc):
+    def __init__(self, fcc, fmgs, flightModel, filterOn, alpha):
         self.nx = 0
         self.nz = 0
         self.p = 0
-        self.joystick = None # joystick object from pygame
-        self.threadRunning = True
-        self.moved = False
+        
         self.fcc = fcc
-
-        self.throttleAxis = 3
-        self.pitchAxis = 1
-        self.rollAxis = 0
+        self.fmgs = fmgs
+        self.flightModel = flightModel
 
         self.throttleAxisValue = 0 # throttle axis value from joystick to compute nx
         self.pitchAxisValue = 0 # pitch axis value from joystick to compute nz
         self.rollAxisValue = 0 # roll axis value from joystick to compute p
+        
+        self.joystick = None # joystick object from pygame
+        self.threadRunning = True
+        self.moved = False
 
+        self.throttleAxis = 3
+        self.pitchAxis = 1
+        self.rollAxis = 0
 
         self.flapsUpButton = 11
         self.flapsDownButton = 10
@@ -84,11 +87,10 @@ class MiniYoke :
         self.rollAxisMax = 1
         self.rollAxisMin = -1
 
-        self.pMax = 0.35
-        self.pMin = -0.35
-
-        self.nzMax = 4
-        self.nzMin = -2
+        self.filterOn = filterOn
+        self.filteredPitchAxisValue = 0
+        self.filteredRollAxisValue = 0
+        self.alpha = alpha  # Coefficient for low pass filter
 
 
     def begin(self):
@@ -136,51 +138,62 @@ class MiniYoke :
             
             self.moved = True if self.pitchAxisValue != 0 and self.rollAxisValue != 0 else False
 
-            self.getInputs(self.pitchAxisValue, self.rollAxisValue)
+            self.getFlightCommands(self.pitchAxisValue, self.rollAxisValue)
+            self.fcc.setFlightCommands(self.nx, self.nz, self.p)
             
             time.sleep(0.1)
 
-    def getInputs(self, pitchAxisValue, rollAxisValue):
-        self.nx = self.getNx()
-        self.nz = self.getNz(pitchAxisValue)
-        self.p = self.getP(rollAxisValue)
-        self.fcc.setFlightInputs(self.nx, self.nz, self.p)
+    def getFlightCommands(self, pitchAxisValue, rollAxisValue):
+        self.nx = self.NxLaw()
+        self.nz = self.NzLaw(pitchAxisValue)
+        self.p = self.PLaw(rollAxisValue)
+        
     
-    def getNx(self):
+    def NxLaw(self):
         return 1
 
-    def getNz(self, pitchAxisValue):
-        nz = self.nzMin + (self.nzMax - self.nzMin) * (pitchAxisValue - self.pitchAxisMin) / (self.pitchAxisMax - self.pitchAxisMin)
-        
-        return max(self.nzMin, min(self.nzMax, nz))
+    def NzLaw(self, pitchAxisValue):
+        if self.filterOn:
+            self.filteredPitchAxisValue = self.alpha * pitchAxisValue + (1 - self.alpha) * self.filteredPitchAxisValue
+            nz = self.nzMin + (self.nzMax - self.nzMin) * (self.filteredPitchAxisValue - self.pitchAxisMin) / (self.pitchAxisMax - self.pitchAxisMin)
+        else:
+            nz = self.nzMin + (self.nzMax - self.nzMin) * (pitchAxisValue - self.pitchAxisMin) / (self.pitchAxisMax - self.pitchAxisMin)
 
-    def getP(self, rollAxisValue):
-        p = self.pMin + (self.pMax - self.pMin) * (rollAxisValue - self.rollAxisMin) / (self.rollAxisMax - self.rollAxisMin)
+        if self.flightModel.phi > self.fmgs.phiMax:
+            nz = 0
 
-        return max(self.pMin, min(self.pMax, p))
+        return max(self.fmgs.nzMin, min(self.fmgs.nzMax, nz))
+
+    def PLaw(self, rollAxisValue):
+        if self.filterOn:
+            self.filteredRollAxisValue = self.alpha * rollAxisValue + (1 - self.alpha) * self.filteredRollAxisValue
+            p = self.pMin + (self.pMax - self.pMin) * (self.filteredRollAxisValue - self.rollAxisMin) / (self.rollAxisMax - self.rollAxisMin)
+        else:
+            p = self.pMin + (self.pMax - self.pMin) * (rollAxisValue - self.rollAxisMin) / (self.rollAxisMax - self.rollAxisMin)
+
+        if self.flightModel.fpa > self.fmgs.fpaMax:
+            p = -p
     
-    def setMoved(self, moved):
-        self.moved = moved
+        return max(self.fmgs.pMin, min(self.fmgs.pMax, p))
     
-    def close(self):
+    def end(self):
+        self.threadRunning = False
         pygame.quit()
         pygame.joystick.quit()
-
-        self.threadRunning = False
 
 class ApLAT :
     def __init__(self):
         self.p = 0
         self.ready = False
+        self.regex = '^AP_LAT p=(\S+)'
     
     def parser(self, *msg):
         self.p = msg[1]
-        self.setReady(True) # apLat data is ready to be sent
+        self.ready = True # apLat data is ready to be sent
 
         print('Received message from AP_LAT :')
         print('p =', self.p)
         
-    
     def setReady(self, ready):
         self.ready = ready
     
@@ -189,6 +202,7 @@ class ApLONG :
         self.nx = 0
         self.nz = 0
         self.ready = False
+        self.regex = '^AP_LONG nx=(\S+) nz=(\S+)'
     
     def parser(self, *msg):
         self.nx = msg[1]
@@ -197,7 +211,7 @@ class ApLONG :
         print('nx =', self.nx)
         print('nz =', self.nz)
 
-        self.setReady(True) # apLong data is ready to be sent
+        self.ready = True # apLong data is ready to be sent
     
     def setReady(self, ready):
         self.ready = ready
@@ -207,21 +221,29 @@ class FMGS :
         self.nxMax = 0
         self.nzMax = 0
         self.pMax = 0
+        self.phiMax = 0
+        self.fpaMax = 0
+        self.regex = '^FMGS nxMax=(\S+) nzMax=(\S+) pMax=(\S+) phiMax=(\S+) fpaMax=(\S+)'
     
     def parser(self, *msg):
         self.nxMax = msg[1]
         self.nzMax = msg[2]
         self.pMax = msg[3]
+        self.phiMax = msg[4]
+        self.fpaMax = msg[5]
 
         print('Received message from FMGS :')
         print('nxMax =', self.nxMax)
         print('nzMax =', self.nzMax)
         print('pMax =', self.pMax)
+        print('phiMax =', self.phiMax)
+        print('fpaMax =', self.fpaMax)
         
 class FCU :
     AP_STATE = Enum('ON','OFF')
     def __init__(self):
         self.ApState = 'OFF'
+        self.regex = '^FCUAP1 push'
 
     def parser(self, *msg):
         print('Ap button pushed on FCU')
@@ -231,3 +253,32 @@ class FCU :
     
     def setApState(self, state):
         self.ApState = state
+
+class FlightModel :
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        self.Vp = 0
+        self.fpa = 0
+        self.psi = 0
+        self.phi = 0
+        self.regex = '^StateVector x=(\S+) y=(\S+) z=(\S+) Vp=(\S+) fpa=(\S+) psi=(\S+) phi=(\S+)'
+
+    def parser(self, *msg):
+        self.x = msg[1]
+        self.y = msg[2]
+        self.z = msg[3]
+        self.Vp = msg[4]
+        self.fpa = msg[5]
+        self.psi = msg[6]
+        self.phi = msg[7]
+
+        print('Received message from FM :')
+        print('x =', self.x)
+        print('y =', self.y)
+        print('z =', self.z)
+        print('Vp =', self.Vp)
+        print('fpa =', self.fpa)
+        print('psi =', self.psi)
+        print('phi =', self.phi)

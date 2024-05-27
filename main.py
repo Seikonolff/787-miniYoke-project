@@ -1,5 +1,5 @@
 import threading, sys
-from systems import FCC, MiniYoke, ApLAT, ApLONG, FMGS, FCU
+from systems import FCC, MiniYoke, ApLAT, ApLONG, FMGS, FCU, FlightModel
 from bus import AviBus
 
 aviBus = AviBus(appName="MiniYokeModule", prod=True)
@@ -8,9 +8,10 @@ apLat = ApLAT()
 apLong = ApLONG()
 fmgs = FMGS()
 fcu = FCU()
+flightModel = FlightModel()
 
 fcc = FCC(fcu, aviBus)
-miniYoke = MiniYoke(fcc)
+miniYoke = MiniYoke(fcc, fmgs, flightModel, filterOn=True, alpha=0.1)
 
 running = True
 
@@ -23,9 +24,11 @@ def init():
     yokeThread.start()
 
     # Bind avi bus msg here
-    aviBus.bindMsg(fcu.parser, '^FCUAP1 push')
-    aviBus.bindMsg(apLong.parser, '^AP_LONGI nx=(\S+) nz=(\S+)')
-    aviBus.bindMsg(apLat.parser, '^AP_LAT p=(\S+)')
+    aviBus.bindMsg(fcu.parser, fcu.regex)
+    aviBus.bindMsg(apLong.parser, apLong.regex)
+    aviBus.bindMsg(apLat.parser, apLat.regex)
+    aviBus.bindMsg(fmgs.parser, fmgs.regex) # NTS : check if the regex is correct
+    aviBus.bindMsg(flightModel.parser, flightModel.regex)
 
 def main():
     #print('fcc state =', fcc.state)
@@ -87,8 +90,8 @@ def main():
             print("Error : unknown miniYoke state")
     
 def close():
-    miniYoke.close()
-    aviBus.close()
+    miniYoke.end()
+    aviBus.stop()
 
 if __name__ == '__main__':
     init()

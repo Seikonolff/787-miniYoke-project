@@ -22,5 +22,5 @@ class AviBus :
     def bindMsg(self, callback, regex):
         IvyBindMsg(callback, regex)
     
-    def close(self):
+    def stop(self):
         IvyStop()

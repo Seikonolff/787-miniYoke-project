@@ -6,7 +6,7 @@ Simple yoke's avionic simulation project made out of 4 python scripts :
 - Flight management system (FMS)
 - Automatic pilot in longitudinal axis
 - Automatic pilot in lateral axis
-- Yoke simulation 
+- Yoke simulation <-- This repo
 
 ## Table of Contents
 
