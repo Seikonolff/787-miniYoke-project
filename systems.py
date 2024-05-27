@@ -217,27 +217,52 @@ class ApLONG :
         self.ready = ready
 
 class FMGS : 
-    def __init__(self):
+    def __init__(self, prod=True):
         self.nxMax = 0
+        self.nxMin = 0
         self.nzMax = 0
+        self.nzMin = 0
         self.pMax = 0
+        self.pMin = 0
+        self.fpaMax = 0 # Flight Path Angle = Gamma here
+        self.fpaMin = 0
         self.phiMax = 0
         self.fpaMax = 0
-        self.regex = '^FMGS nxMax=(\S+) nzMax=(\S+) pMax=(\S+) phiMax=(\S+) fpaMax=(\S+)'
-    
+        self.regex = '^Performances NxMax=(\S+) NxMin=(\S+) NzMax=(\S+) NzMin=(\S+) PMax=(\S+) PMin=(\S+) AlphaMax=(\S+) AlphaMin=(\S+) PhiMaxManuel=(\S+) PhiMaxAutomatique=(\S+) GammaMax=(\S+) GammaMin=(\S+)'
+        
+        self.prod = prod
+        if self.prod:
+            self.nxMax = 0.5
+            self.nxMin = -1
+            self.nzMax = 2.5
+            self.nzMin = -1.5
+            self.pMax = 0.7
+            self.pMin = -0.7
+            self.phiMax = 1.152 # 1.152 rad = 66°
+            self.fpaMax = - 0.5 # - 0.262 rad = - 15°
+            self.fpaMin = 0.175 # 0.175 rad = 10°
+            
     def parser(self, *msg):
         self.nxMax = msg[1]
-        self.nzMax = msg[2]
-        self.pMax = msg[3]
-        self.phiMax = msg[4]
-        self.fpaMax = msg[5]
+        self.nxMin = msg[2]
+        self.nzMax = msg[3]
+        self.nzMin = msg[4]
+        self.pMax = msg[5]
+        self.pMin = msg[6]
+        self.phiMax = msg[9]
+        self.fpaMax = msg[10]
+        self.fpaMin = msg[11]
 
         print('Received message from FMGS :')
         print('nxMax =', self.nxMax)
+        print('nxMin =', self.nxMin)
         print('nzMax =', self.nzMax)
+        print('nzMin =', self.nzMin)
         print('pMax =', self.pMax)
+        print('pMin =', self.pMin)
         print('phiMax =', self.phiMax)
         print('fpaMax =', self.fpaMax)
+        print('fpaMin =', self.fpaMin)
         
 class FCU :
     AP_STATE = Enum('ON','OFF')

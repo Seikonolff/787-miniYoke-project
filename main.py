@@ -8,7 +8,7 @@ apLat = ApLAT()
 apLong = ApLONG()
 fmgs = FMGS()
 fcu = FCU()
-flightModel = FlightModel()
+flightModel = FlightModel(prod=True)
 
 fcc = FCC(fcu, aviBus)
 miniYoke = MiniYoke(fcc, fmgs, flightModel, filterOn=True, alpha=0.1)
@@ -24,15 +24,13 @@ def init():
     yokeThread.start()
 
     # Bind avi bus msg here
-    aviBus.bindMsg(fcu.parser, fcu.regex)
-    aviBus.bindMsg(apLong.parser, apLong.regex)
     aviBus.bindMsg(apLat.parser, apLat.regex)
-    aviBus.bindMsg(fmgs.parser, fmgs.regex) # NTS : check if the regex is correct
+    aviBus.bindMsg(apLong.parser, apLong.regex)
+    aviBus.bindMsg(fmgs.parser, fmgs.regex)
+    aviBus.bindMsg(fcu.parser, fcu.regex)
     aviBus.bindMsg(flightModel.parser, flightModel.regex)
 
 def main():
-    #print('fcc state =', fcc.state)
-
     match fcc.state :  # Manage states transitions
         case 'MANUAL':
             if fcu.ApState == 'ON':
@@ -79,9 +77,9 @@ def main():
                 aviBus.sendMsg('APLatControl rollRate={}'.format(apLat.p))
                 
 
-                print('Sent APNxControl nx={}'.format(apLong.nx))
-                print('Sent APNzControl nz={}'.format(apLong.nz))
-                print('Sent APLatControl p={}'.format(apLat.p))
+                #print('Sent APNxControl nx={}'.format(apLong.nx))
+                #print('Sent APNzControl nz={}'.format(apLong.nz))
+                #print('Sent APLatControl p={}'.format(apLat.p))
 
                 apLat.setReady(False)
                 apLong.setReady(False)

@@ -13,7 +13,7 @@ class AviBus :
         #self.adress = "224.255.255.255:2010" if self.prod else "127.0.0.1:8000"
         self.adress = "127.255.255.255:2010" if self.prod else "127.0.0.1:8000"
 
-        IvyInit(self.appName, "zbi", 0, on_cx_proc, on_die_proc)
+        IvyInit(self.appName, "hello, world !", 0, on_cx_proc, on_die_proc)
         IvyStart(self.adress)
 
     def sendMsg(self, msg):
