@@ -159,6 +159,7 @@ class FccTest():
     
     def nzParser(self, *msg):
         self.nz = float(msg[1])
+        print("nz received : ", self.nz)
     
     def pParser(self, *msg):
         self.p = float(msg[1])
@@ -193,7 +194,7 @@ class DataSampler():
                 self.sampleFcu(self.fcu)
                 self.samplefcc(self.fcc)
 
-            time.sleep(0.1)
+            time.sleep(0.5)
 
     def sampleFmgs(self, fmgs):
         fmgs.nxMaxData.append(fmgs.nxMax)
@@ -225,11 +226,9 @@ class DataSampler():
         fcc.nxData.append(fcc.nx)
         fcc.nzData.append(fcc.nz)
         fcc.pData.append(fcc.p)
-
     
     def stop(self):
         self.doSample = False
-        #self.sampleThread.join()
     
     def reset(self):
         pass
@@ -237,7 +236,7 @@ class DataSampler():
     def end(self):
         self.threadRunning = False
     
-    def plotFirstTestData(self):
+    def plotNzLimitationTest(self):
         nx = self.fcc.nxData
         nz = self.fcc.nzData
         p = self.fcc.pData
@@ -249,12 +248,33 @@ class DataSampler():
         plt.plot(nz, label='FCC Nz')
         plt.plot(nzMax, label='FMGS NzMax')
         plt.plot(nzMin, label='FMGS NzMin')
-        plt.title('FCC Nz vs FMGS NzMax')
+        plt.title('FCC Nz vs FMGS NzMax & NzMin')
         plt.xlabel('Sample')
         plt.ylabel('Nz')
         plt.legend()
 
         plt.tight_layout()
         plt.show()
+
+    def plotPLimitaionTest(self):
+        p = self.fcc.pData
+        pMax = self.fmgs.pMaxData
+        pMin = self.fmgs.pMinData
+
+        plt.figure(figsize=(10, 6))
+
+        plt.plot(p, label='FCC P')
+        plt.plot(pMax, label='FMGS PMax')
+        plt.plot(pMin, label='FMGS PMin')
+        plt.title('FCC P vs FMGS PMax & PMin')
+        plt.xlabel('Sample')
+        plt.ylabel('P')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    def plotFpaLimitationTest(self):
+        fpa = self.fcc.fpaData
 
         

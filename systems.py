@@ -15,7 +15,7 @@ class FCC :
         self.aviBus = aviBus
 
         self.flaps = 0 # 0, 1, 2, 3
-        self.gear = False #False = up, True = down
+        self.gear = False #False = down, True = up
 
     def setFlightCommands(self, nx, nz, p):
         self.nx = nx
@@ -34,24 +34,22 @@ class FCC :
             print('Flaps up button pushed')
             self.flaps += 1
             self.flaps = 0 if self.flaps > 3 else self.flaps
-            self.aviBus.sendMsg('YOKE flaps={}'.format(self.flaps))
+            self.aviBus.sendMsg('VoletState={}'.format(self.flaps))
         if flapsDown and not previousFlapsDown :
             print('Flaps down button pushed')
             self.flaps -= 1
             self.flaps = 0 if self.flaps < 0 else self.flaps
-            self.aviBus.sendMsg('YOKE flaps={}'.format(self.flaps))
+            self.aviBus.sendMsg('VoletState={}'.format(self.flaps))
         if apDisconnect and not previousApDisconnect :
             print('AP disconnect button pushed')
             if self.state == 'AP_ENGAGED':
-                print('fcc state switch from AP_ENGAGED to MANUAL')
                 self.aviBus.sendMsg('FCUAP1 off') # Send acknowledge message to the fcu
                 self.state = 'MANUAL'
                 self.fcu.setApState('OFF')
-
         if gearDown and not previousGearDown :
-            print('Gear down button pushed')
             self.gear = True if not self.gear else False
-            self.aviBus.sendMsg('YOKE gear={}'.format(self.gear))
+            print("Gear = ", self.gear, "(False = down, True = up)")
+            self.aviBus.sendMsg('LandingGearState={}'.format(self.gear))
 
 class MiniYoke :
     def __init__(self, fcc, fmgs, flightModel, filterOn, alpha):
@@ -210,7 +208,7 @@ class ApLAT :
         self.regex = '^AP_LAT p=(\S+)'
     
     def parser(self, *msg):
-        self.p = msg[1]
+        self.p = float(msg[1])
         self.ready = True # apLat data is ready to be sent
 
         print('Received message from AP_LAT :')
@@ -227,8 +225,8 @@ class ApLONG :
         self.regex = '^AP_LONG nx=(\S+) nz=(\S+)'
     
     def parser(self, *msg):
-        self.nx = msg[1]
-        self.nz = msg[2]
+        self.nx = float(msg[1])
+        self.nz = float(msg[2])
         print('Received message from AP_LONG :')
         print('nx =', self.nx)
         print('nz =', self.nz)
@@ -267,26 +265,26 @@ class FMGS :
             
             
     def parser(self, *msg):
-        self.nxMax = msg[1]
-        self.nxMin = msg[2]
-        self.nzMax = msg[3]
-        self.nzMin = msg[4]
-        self.pMax = msg[5]
-        self.pMin = msg[6]
-        self.phiMax = msg[9]
-        self.fpaMax = msg[10]
-        self.fpaMin = msg[11]
+        self.nxMax = float(msg[1])
+        self.nxMin = float(msg[2])
+        self.nzMax = float(msg[3])
+        self.nzMin = float(msg[4])
+        self.pMax = float(msg[5])
+        self.pMin = float(msg[6])
+        self.phiMax = float(msg[9])
+        self.fpaMax = float(msg[10])
+        self.fpaMin = float(msg[11])
 
         print('Received message from FMGS :')
-        print('nxMax =', self.nxMax)
-        print('nxMin =', self.nxMin)
-        print('nzMax =', self.nzMax)
-        print('nzMin =', self.nzMin)
-        print('pMax =', self.pMax)
-        print('pMin =', self.pMin)
-        print('phiMax =', self.phiMax)
-        print('fpaMax =', self.fpaMax)
-        print('fpaMin =', self.fpaMin)
+        #print('nxMax =', self.nxMax)
+        #print('nxMin =', self.nxMin)
+        #print('nzMax =', self.nzMax)
+        #print('nzMin =', self.nzMin)
+        #print('pMax =', self.pMax)
+        #print('pMin =', self.pMin)
+        #print('phiMax =', self.phiMax)
+        #print('fpaMax =', self.fpaMax)
+        #print('fpaMin =', self.fpaMin)
         
 class FCU :
     AP_STATE = Enum('ON','OFF')
@@ -328,6 +326,6 @@ class FlightModel :
         #print('y =', self.y)
         #print('z =', self.z)
         #print('Vp =', self.Vp)
-        print('fpa =', self.fpa)
+        #print('fpa =', self.fpa)
         #print('psi =', self.psi)
-        print('phi =', self.phi)
+        #print('phi =', self.phi)
