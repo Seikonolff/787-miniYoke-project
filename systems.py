@@ -213,7 +213,7 @@ class ApLONG :
         self.nx = 0
         self.nz = 0
         self.ready = False
-        self.regex = '^AP_LONG nx=(\S+) nz=(\S+)'
+        self.regex = '^PaLong Nx=(\S+) Nz=(\S+)'
     
     def parser(self, *msg):
         self.nx = float(msg[1])

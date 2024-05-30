@@ -2,7 +2,7 @@ import threading, sys
 from systems import FCC, MiniYoke, ApLAT, ApLONG, FMGS, FCU, FlightModel
 from bus import AviBus
 
-aviBus = AviBus(appName="MiniYokeModule", adress="192.168.0.255:2010")
+aviBus = AviBus(appName="MiniYokeModule", adress="192.168.131.255:2087")
 
 apLat = ApLAT()
 apLong = ApLONG()
