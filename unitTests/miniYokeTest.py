@@ -13,12 +13,6 @@ fccTest = FccTest(fcuTest)
 dataSampler = DataSampler(fmgs, apLat, apLong, stateVector, fcuTest, fccTest)
 
 def testInit():
-    global run
-    run = True
-
-    print("Welcome to the miniYoke test program")
-    # Bind msg here
-    aviBus.bindMsg(stateVector.parser, stateVector.parserRegex)
     aviBus.bindMsg(fccTest.nxParser, fccTest.nxRegex)
     aviBus.bindMsg(fccTest.nzParser, fccTest.nzRegex)
     aviBus.bindMsg(fccTest.pParser, fccTest.pRegex)
@@ -29,11 +23,15 @@ def testInit():
     time.sleep(5)
 
 def nzLimitationTest():
+    """
+    This function performs a test to check the nz and alpha limitations of the system.
+    It initializes the state vector at FL350, 30kts wind from 120 degrees, and magnetic declination of 12.69 degrees.
+    """
     print("Begin nzMax and alphaMax test")
-    for msg in stateVector.initRegexs(30, 120, 12.69):
+    for msg in stateVector.initRegexs(vWind=30, dirWind=120, magneticDeclination=12.69):
         aviBus.sendMsg(msg)
 
-    dataSampler.run()
+    dataSampler.start()
     
     fmgs.setData(nxMax=0.5, 
                  nxMin=-1, 
@@ -64,12 +62,15 @@ def nzLimitationTest():
     dataSampler.reset()
 
 def pLimitationTest():
+    """
+    This function performs a p and phi limitation test.
+    """
     print("Begin p limitation test")
     time.sleep(2)
     for msg in stateVector.initRegexs(30, 120, 12.69):
         aviBus.sendMsg(msg)
     
-    dataSampler.run()
+    dataSampler.start()
 
     fmgs.setData(nxMax=0.5, 
                  nxMin=-1, 
@@ -151,6 +152,12 @@ def pLimitationTest():
     dataSampler.reset()
 
 def apTest():
+    """
+    Function to perform autopilot test.
+
+    This function activates the autopilot, sets the desired values for latitude and longitude,
+    waits for the flight control computer to send data back.
+    """
     print("Begin autopilot test")
     time.sleep(2)
     for msg in stateVector.initRegexs(30, 120, 12.69):
@@ -161,35 +168,50 @@ def apTest():
     aviBus.sendMsg(msg)
     time.sleep(1)
 
-    dataSampler.run()
-
-    apLat.setData(p= 0.3)
-    msgLat = apLat.getRegex()
+    apLat.setData(p=0.3)
     apLong.setData(nx=0.3, nz=1.6)
+
+    msgLat = apLat.getRegex()
     msgLong = apLong.getRegex()
     aviBus.sendMsg(msgLat)
     aviBus.sendMsg(msgLong)
 
+    print("waiting for fcc to send data...")
+    while (apLat.p != 0.3) and (apLong.nx != 0.3) and (apLong.nz != 1.6):
+        print(".")
+        time.sleep(1)
+
     time.sleep(2)
 
-    apLat.setData(p= -0.4)
+    apLat.setData(p=-0.4)
     msgLat = apLat.getRegex()
     aviBus.sendMsg(msgLat)
 
-    time.sleep(1)
+    count = 0
+
+    while apLat.p != -0.4:
+        print(".")
+        time.sleep(1)
+        count += 1
+        if count == 3:
+            break
 
     apLong.setData(nx=0, nz=2.5)
     msgLong = apLong.getRegex()
     aviBus.sendMsg(msgLong)
 
-    time.sleep(3)
-
-    dataSampler.stop()
-    dataSampler.plotApTest()
+    while apLat.p != -0.4 and apLong.nx != 0 and apLong.nz != 2.5:
+        print(".")
+        time.sleep(1)
     
-    
+    print("Auto pilot test completed")
 
 def buttonsTest():
+    """
+    This function performs a series of tests on the buttons of the miniYoke device.
+    It tests the autopilot engagement and disengagement, flaps control, and gear control.
+    """
+
     print("Begin buttons test")
     time.sleep(2)
     for msg in stateVector.initRegexs(30, 120, 12.69):
@@ -199,11 +221,11 @@ def buttonsTest():
     msg = fcuTest.getRegex()
     aviBus.sendMsg(msg)
 
-    print("wait acknoledge response...")
+    print("wait acknowledge response...")
     while fcuTest.apState != 'on':
         print(".")
         time.sleep(1)
-    print("acknoledge response received")
+    print("acknowledge response received")
 
     print("please disengage the autopilot")
     while fcuTest.apState != 'off':
@@ -215,13 +237,13 @@ def buttonsTest():
     msg = fcuTest.getRegex()
     aviBus.sendMsg(msg)
 
-    print("wait acknoledge response...")
+    print("wait acknowledge response...")
     while fcuTest.apState != 'on':
         print(".")
         time.sleep(1)
-    print("acknoledge response received")
+    print("acknowledge response received")
 
-    print("please disconnect the autopilot by mooving the yoke")
+    print("please disconnect the autopilot by moving the yoke")
     while fcuTest.apState != 'off':
         print(".")
         time.sleep(1)
@@ -251,22 +273,17 @@ def buttonsTest():
     print("please extend gear")
     while fccTest.gear != False:
         print(".")
-        print(fccTest.gear)
-        print("fccTest.gearParser != False", fccTest.gearParser != False)
         time.sleep(1)
     
     print("gear extended")
-
     print("Button test completed")
     
-
 if __name__ == '__main__':
     testInit()
     try :
-        #nzLimitationTest()
-        #pLimitationTest()
-        #buttonsTest()
+        nzLimitationTest()
+        pLimitationTest()
+        buttonsTest()
         apTest()
     except KeyboardInterrupt:
-        aviBus.stop()
-    
+        aviBus.stop() 
