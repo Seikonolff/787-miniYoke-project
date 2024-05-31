@@ -4,30 +4,57 @@ from enum import Enum
 
 class FCC :
     fccState = Enum('MANUAL','AP_ENGAGED')
-    def __init__(self, fcu, aviBus):
+    def __init__(self, fcu, fmgs, flightModel, aviBus):
         self.state = 'MANUAL'
         self.nx = 0
         self.nz = 0
         self.p = 0
 
+        self.nzMargin = 0.80
+        self.pMargin = 0.90
+
         self.ready = False
         self.fcu = fcu
+        self.fmgs = fmgs
+        self.flightModel = flightModel
         self.aviBus = aviBus
 
         self.flaps = 0 # 0, 1, 2, 3
         self.gear = False #False = down, True = up
-
-    def setFlightCommands(self, nx, nz, p):
-        self.nx = nx
-        self.nz = nz
-        self.p = p
-        self.ready = True
 
     def setState(self, state):
         self.state = state
     
     def setReady(self, ready):
         self.ready = ready
+
+    def setFlightCommands(self, nx, nz, p, pitchAxisValue, rollAxisValue):
+        if self.state == 'MANUAL':
+            self.nx = self.nxLaw(nx)
+            self.nz = self.nzLaw(nz, pitchAxisValue)
+            self.p = self.pLaw(p, rollAxisValue)
+            self.ready = True
+    
+    def nxLaw(self, nx):
+        # currently not implemented
+        return None
+
+    def nzLaw(self, nz, pitchAxisValue):
+        if self.flightModel.fpa <= self.fmgs.fpaMin*self.nzMargin and pitchAxisValue < 0:
+            return self.fmgs.nzMax
+            
+        elif self.flightModel.fpa >= self.fmgs.fpaMax*self.nzMargin and pitchAxisValue > 0:
+            return self.fmgs.nzMin
+
+        return max(self.fmgs.nzMin, min(self.fmgs.nzMax, nz))
+
+    def pLaw(self, p, rollAxisValue):
+        if self.flightModel.phi < self.fmgs.phiMin*self.pMargin and rollAxisValue < 0:
+            return 0
+        elif self.flightModel.phi > self.fmgs.phiMax*self.pMargin and rollAxisValue > 0:
+            return 0
+
+        return max(self.fmgs.pMin, min(self.fmgs.pMax, p))
     
     def sendButtonsState(self, flapsUp, flapsDown, apDisconnect, gearDown, previousFlapsUp, previousFlapsDown, previousApDisconnect, previousGearDown):
         if flapsUp and not previousFlapsUp :
@@ -54,14 +81,8 @@ class FCC :
             self.aviBus.sendMsg('LandingGearState={}'.format(self.gear))
 
 class MiniYoke :
-    def __init__(self, fcc, fmgs, flightModel, alphaFilter):
-        self.nx = 0
-        self.nz = 0
-        self.p = 0
-        
+    def __init__(self, fcc, alphaFilter):
         self.fcc = fcc
-        self.fmgs = fmgs
-        self.flightModel = flightModel
 
         self.throttleAxisValue = 0 # throttle axis value from joystick to compute nx
         self.pitchAxisValue = 0 # pitch axis value from joystick to compute nz
@@ -79,9 +100,6 @@ class MiniYoke :
         self.nzMax = 3
         self.pMin = -0.35
         self.pMax = 0.35
-
-        self.nzMargin = 0.80
-        self.pMargin = 0.90
 
         self.flapsUpButton = 11
         self.flapsDownButton = 10
@@ -149,43 +167,22 @@ class MiniYoke :
             
             self.moved = True if self.pitchAxisValue != 0 and self.rollAxisValue != 0 else False
 
-            self.getFlightCommands(self.pitchAxisValue, self.rollAxisValue)
-            self.fcc.setFlightCommands(self.nx, self.nz, self.p)
+            self.fcc.setFlightCommands(self.getNx(self.throttleAxisValue), self.getNz(self.pitchAxisValue), self.getP(self.rollAxisValue), self.pitchAxisValue, self.rollAxisValue)
             time.sleep(0.1)
-
-    def getFlightCommands(self, pitchAxisValue, rollAxisValue):
-        self.nx = self.nxLaw(self.throttleAxisValue)
-        self.nz = self.nzLaw(pitchAxisValue)
-        self.p = self.pLaw(rollAxisValue)
-        
     
-    def nxLaw(self, throttleAxisValue):
-        return 1
-
-    def nzLaw(self, pitchAxisValue):
-
-        if self.flightModel.fpa <= self.fmgs.fpaMin*self.nzMargin and pitchAxisValue < 0:
-            return self.fmgs.nzMax
-            
-        elif self.flightModel.fpa >= self.fmgs.fpaMax*self.nzMargin and pitchAxisValue > 0:
-            return self.fmgs.nzMin
-
+    def getNx(self, throttleAxisValue):
+        # currently not implemented
+        return None
+        
+    def getNz(self, pitchAxisValue):
         self.filteredPitchAxisValue = self.alpha * pitchAxisValue + (1 - self.alpha) * self.filteredPitchAxisValue
         nz = self.nzMin + (self.nzMax - self.nzMin) * (self.filteredPitchAxisValue - self.pitchAxisMin) / (self.pitchAxisMax - self.pitchAxisMin)
-
-
-        return max(self.fmgs.nzMin, min(self.fmgs.nzMax, nz))
-
-    def pLaw(self, rollAxisValue):
+        return nz
+    
+    def getP(self, rollAxisValue):
         self.filteredRollAxisValue = self.alpha * rollAxisValue + (1 - self.alpha) * self.filteredRollAxisValue
         p = self.pMin + (self.pMax - self.pMin) * (self.filteredRollAxisValue - self.rollAxisMin) / (self.rollAxisMax - self.rollAxisMin)
-
-        if self.flightModel.phi < self.fmgs.phiMin*self.pMargin and self.rollAxisValue < 0:
-            p = 0
-        elif self.flightModel.phi > self.fmgs.phiMax*self.pMargin and self.rollAxisValue > 0:
-            p = 0
-
-        return max(self.fmgs.pMin, min(self.fmgs.pMax, p))
+        return p
     
     def end(self):
         self.threadRunning = False
@@ -289,6 +286,7 @@ class FlightModel :
         self.psi = 0
         self.phi = 0
         self.regex = '^StateVector x=(\S+) y=(\S+) z=(\S+) Vp=(\S+) fpa=(\S+) psi=(\S+) phi=(\S+)'
+        self.ready = False
 
     def parser(self, *msg):
         self.x = float(msg[1])
@@ -299,6 +297,8 @@ class FlightModel :
         self.psi = float(msg[6])
         self.phi = float(msg[7])
 
+        self.ready = True
+
         #print('Received message from FM :')
         #print('x =', self.x)
         #print('y =', self.y)
@@ -307,3 +307,6 @@ class FlightModel :
         #print('fpa =', self.fpa)
         #print('psi =', self.psi)
         #print('phi =', self.phi)
+    
+    def setReady(self, ready):
+        self.ready = ready

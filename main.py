@@ -6,12 +6,12 @@ aviBus = AviBus(appName="MiniYokeModule", adress="192.168.131.255:2087")
 
 apLat = ApLAT()
 apLong = ApLONG()
-fmgs = FMGS()
+fmgs = FMGS() 
 fcu = FCU()
 flightModel = FlightModel()
 
-fcc = FCC(fcu, aviBus)
-miniYoke = MiniYoke(fcc, fmgs, flightModel, alphaFilter=0.1)
+fcc = FCC(fcu, fmgs, flightModel, aviBus)
+miniYoke = MiniYoke(fcc, alphaFilter=0.1)
 
 running = True
 
@@ -23,7 +23,6 @@ def init():
     yokeThread = threading.Thread(target=miniYoke.listener)
     yokeThread.start()
 
-    # Bind avi bus msg here
     aviBus.bindMsg(apLat.parser, apLat.regex)
     aviBus.bindMsg(apLong.parser, apLong.regex)
     aviBus.bindMsg(fmgs.parser, fmgs.regex)
@@ -48,18 +47,18 @@ def main():
             
             elif miniYoke.moved : 
                 print('miniYoke has been mooved state switch from AP_ENGAGED to MANUAL')
-                aviBus.sendMsg('FCUAP1 off') # Send AP off message to the fcu
+                aviBus.sendMsg('FCUAP1 off') # Send acknowledge message to the fcu
                 
                 fcu.setApState('OFF')
                 fcc.setState('MANUAL')
 
         case _:
-            print("Error : unknown miniYoke state")
+            print("Error : unknown fcc state")
         
     match fcc.state :  # Manage states actions
         case 'MANUAL':
-            if fcc.ready:
-                aviBus.sendMsg('APNxControl nx={}'.format(float(fcc.nx)))
+            if fcc.ready and flightModel.ready:
+                aviBus.sendMsg('APNxControl nx={}'.format(float(apLong.nx)))
                 aviBus.sendMsg('APNzControl nz={}'.format(float(fcc.nz)))
                 aviBus.sendMsg('APLatControl rollRate={}'.format(float(fcc.p)))
                 
@@ -69,12 +68,13 @@ def main():
                 #print('Sent APLatControl p={}'.format(fcc.p))
 
                 fcc.setReady(False)
+                flightModel.setReady(False)
 
         case 'AP_ENGAGED':
             if apLat.ready and apLong.ready :
-                aviBus.sendMsg('APNxControl nx={}'.format(apLong.nx))
-                aviBus.sendMsg('APNzControl nz={}'.format(apLong.nz))
-                aviBus.sendMsg('APLatControl rollRate={}'.format(apLat.p))
+                aviBus.sendMsg('APNxControl nx={}'.format(float(apLong.nx)))
+                aviBus.sendMsg('APNzControl nz={}'.format(float(apLong.nz)))
+                aviBus.sendMsg('APLatControl rollRate={}'.format(float(apLat.p)))
                 
 
                 print('Sent APNxControl nx={}'.format(apLong.nx))
@@ -85,7 +85,7 @@ def main():
                 apLong.setReady(False)
             
         case _:
-            print("Error : unknown miniYoke state")
+            print("Error : unknown fcc state")
     
 def close():
     miniYoke.end()
