@@ -34,7 +34,10 @@ On MacOs/linux (not suported atm) :
     - python3 main.py
 
 On Windows :
-- launch the .exe file
+- in local host :
+    - launch the .exe file
+- in a specific adress : 
+    - aircraft-sim.exe --bus "adress"
 - open terminal :
     - python3 main.py
 

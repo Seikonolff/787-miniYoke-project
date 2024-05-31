@@ -264,17 +264,17 @@ class FMGS :
 class FCU :
     AP_STATE = Enum('ON','OFF')
     def __init__(self):
-        self.ApState = 'OFF'
+        self.apState = 'OFF'
         self.regex = '^FCUAP1 push'
 
     def parser(self, *msg):
         print('Ap button pushed on FCU')
-        self.ApState = 'ON' if self.ApState == 'OFF' else 'OFF'
+        self.apState = 'ON' if self.apState == 'OFF' else 'OFF'
 
-        print('AP state =', self.ApState)
+        print('AP state =', self.apState)
     
     def setApState(self, state):
-        self.ApState = state
+        self.apState = state
 
 class FlightModel :
     def __init__(self):

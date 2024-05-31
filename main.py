@@ -2,7 +2,7 @@ import threading, sys
 from systems import FCC, MiniYoke, ApLAT, ApLONG, FMGS, FCU, FlightModel
 from bus import AviBus
 
-aviBus = AviBus(appName="MiniYokeModule", adress="192.168.131.255:2087")
+aviBus = AviBus(appName="MiniYokeModule", adress="192.168.219.255:2087")
 
 apLat = ApLAT()
 apLong = ApLONG()
@@ -32,14 +32,14 @@ def init():
 def main():
     match fcc.state :  # Manage states transitions
         case 'MANUAL':
-            if fcu.ApState == 'ON':
+            if fcu.apState == 'ON':
                 print('fcc state switch from MANUAL to AP_ENGAGED')
                 aviBus.sendMsg('FCUAP1 on') # Send acknowledge message to the fcu
 
                 fcc.setState('AP_ENGAGED')
 
         case 'AP_ENGAGED':
-            if fcu.ApState == 'OFF':
+            if fcu.apState == 'OFF':
                 print('fcc state switch from AP_ENGAGED to MANUAL')
                 aviBus.sendMsg('FCUAP1 off') # Send acknowledge message to the fcu
 
