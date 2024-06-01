@@ -181,7 +181,8 @@ def apTest():
         print(".")
         time.sleep(1)
 
-    time.sleep(2)
+    print("fcc data received")
+    time.sleep(1)
 
     apLat.setData(p=-0.4)
     msgLat = apLat.getRegex()
@@ -193,7 +194,7 @@ def apTest():
         print(".")
         time.sleep(1)
         count += 1
-        if count == 3:
+        if count == 2:
             break
 
     apLong.setData(nx=0, nz=2.5)
@@ -211,7 +212,6 @@ def buttonsTest():
     This function performs a series of tests on the buttons of the miniYoke device.
     It tests the autopilot engagement and disengagement, flaps control, and gear control.
     """
-
     print("Begin buttons test")
     time.sleep(2)
     for msg in stateVector.initRegexs(30, 120, 12.69):

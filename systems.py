@@ -33,7 +33,6 @@ class FCC:
         nzLaw(nz, pitchAxisValue, fmgs, flightModel): Computes the nz control law.
         pLaw(p, rollAxisValue, fmgs, flightModel): Computes the p control law.
         sendButtonsState(flapsUp, flapsDown, apDisconnect, gear, previousFlapsUp, previousFlapsDown, previousApDisconnect, previousGear): Sends the rising edge of the buttons to the Avionics Bus.
-
     """
 
     fccState = Enum('MANUAL', 'AP_ENGAGED')
@@ -127,7 +126,7 @@ class FCC:
             flightModel (object): The Flight Model object.
 
         Returns:
-            float: The calculated nz value.
+            float: The nz value either limited in nz or fpa.
         """
         if flightModel.fpa <= fmgs.fpaMin * self.nzMargin and pitchAxisValue < 0:
             return self.fmgs.nzMax
@@ -148,7 +147,7 @@ class FCC:
             flightModel (object): The Flight Model object.
 
         Returns:
-            float: The calculated p value.
+            float: The p value either limited in p or phi.
         """
         if flightModel.phi < fmgs.phiMin * self.pMargin and rollAxisValue < 0:
             return 0
@@ -211,10 +210,10 @@ class MiniYoke :
     - throttleAxis: The index of the throttle axis on the joystick.
     - pitchAxis: The index of the pitch axis on the joystick.
     - rollAxis: The index of the roll axis on the joystick.
-    - nzMin: The minimum value of nz.
-    - nzMax: The maximum value of nz.
-    - pMin: The minimum value of p.
-    - pMax: The maximum value of p.
+    - nzMin: The minimum value of nz on the axis of the joystick.
+    - nzMax: The maximum value of nz on the axis of the joystick.
+    - pMin: The minimum value of p on the axis of the joystick.
+    - pMax: The maximum value of p on the axis of the joystick.
     - flapsUpButton: The index of the button for raising the flaps on the joystick.
     - flapsDownButton: The index of the button for lowering the flaps on the joystick.
     - apDisconnectButton: The index of the button for disconnecting the autopilot on the joystick.
@@ -406,7 +405,6 @@ class ApLAT:
         regex (str): The regular expression pattern for parsing ApLAT's messages.
 
     Methods:
-        __init__(): Initializes the ApLAT object.
         parser(*msg): Parses the message and updates the p value.
         setReady(ready): Sets the ready status of the apLat data.
     """
@@ -455,7 +453,6 @@ class ApLONG:
         regex (str): The regular expression used for parsing ApLONG's messages.
 
     Methods:
-        __init__(): Initializes the ApLONG object.
         parser(*msg): Parses the given message and updates nx and nz values.
         setReady(ready): Sets the ready attribute to the given value.
     """
@@ -551,7 +548,6 @@ class FCU:
         regex (str): The regular expression pattern used for parsing messages.
 
     Methods:
-        __init__(): Initializes the FCU object with the autopilot state set to 'OFF'.
         parser(*msg): Parses the message and updates the autopilot state accordingly.
         setApState(state): Sets the autopilot state to the specified state.
     """
@@ -599,6 +595,10 @@ class FlightModel:
         phi (float): The roll angle of the aircraft.
         regex (str): The regular expression used for parsing the state vector message.
         ready (bool): Indicates whether the flight model's state vector has been received.
+    
+    Methods:
+        parser(*msg): Parses the state vector message and updates the flight model attributes.
+        setReady(ready): Sets either the data of the flightModel has been received or not.
     """
 
     def __init__(self):
@@ -631,7 +631,7 @@ class FlightModel:
     
     def setReady(self, ready):
         """
-        Sets the readiness status of the flight model.
+        Sets either the data of the flightModel has been received or not.
 
         Args:
             ready (bool): The readiness status of the flight model.
