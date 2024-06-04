@@ -507,7 +507,7 @@ class DataSampler():
         """
         while self.threadRunning:
             if self.doSample:
-                print(".")
+                #print(".")
                 self.sampleFmgs(self.fmgs)
                 self.sampleApLat(self.apLat)
                 self.sampleApLong(self.apLong)
@@ -630,7 +630,7 @@ class DataSampler():
         plt.plot(nzMax, label='NzMax')
         plt.plot(nzMin, label='NzMin')
         plt.title('FCC Nz vs FMGS NzMax & NzMin')
-        plt.xlabel('time (ms)')
+        plt.xlabel('time (ds)')
         plt.ylabel('Nz')
         plt.legend()
 
@@ -651,7 +651,7 @@ class DataSampler():
         plt.plot(fpaMax, label='fpa max (rad)')
         plt.plot(fpaMin, label='fpa min (rad)')
         plt.title('StateVector FPA vs FMGS FpaMax & FpaMin')
-        plt.xlabel('time (ms)')
+        plt.xlabel('time (ds)')
         plt.ylabel('FPA')
         plt.legend()
 
@@ -672,7 +672,7 @@ class DataSampler():
         plt.plot(pMax, label='p Max (rad/s)')
         plt.plot(pMin, label='p Min (rad/s)')
         plt.title('FCC P vs FMGS PMax & PMin')
-        plt.xlabel('time (ms)')
+        plt.xlabel('time (ds)')
         plt.ylabel('P')
         plt.legend()
 
@@ -693,7 +693,7 @@ class DataSampler():
         plt.plot(phiMax, label='PhiMax (rad)')
         plt.plot(phiMin, label='PhiMin (rad)')
         plt.title('FCC Phi Limitation')
-        plt.xlabel('time (ms)')
+        plt.xlabel('time (ds)')
         plt.ylabel('Phi')
         plt.legend()
 

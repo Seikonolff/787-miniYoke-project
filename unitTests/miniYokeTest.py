@@ -19,6 +19,7 @@ def testInit():
     aviBus.bindMsg(fccTest.flapsParser, fccTest.flapsRegex)
     aviBus.bindMsg(fccTest.gearParser, fccTest.gearRegex)
     aviBus.bindMsg(fccTest.apAckParser, fccTest.apAckRegex)
+    aviBus.bindMsg(stateVector.parser, stateVector.parserRegex)
 
     time.sleep(5)
 
